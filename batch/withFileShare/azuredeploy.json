@@ -1,0 +1,136 @@
+{
+  "$schema": "https://schema.management.azure.com/schemas/2019-04-01/deploymentTemplate.json#",
+  "contentVersion": "1.0.0.0",
+  "parameters": {
+    "batchAccountName": {
+      "type": "string",
+      "defaultValue": "[concat(toLower(uniqueString(resourceGroup().id)), 'batch')]",
+      "metadata": {
+        "description": "Batch Account Name"
+      }
+    },
+    "location": {
+      "type": "string",
+      "defaultValue": "[resourceGroup().location]",
+      "metadata": {
+        "description": "Specifies the location in which the Azure Storage resources should be deployed."
+      }
+    },
+    "fileShareName": {
+      "type": "string",
+      "minLength": 3,
+      "maxLength": 63,
+      "metadata": {
+        "description": "Specifies the name of the File Share. File share names must be between 3 and 63 characters in length and use numbers, lower-case letters and dash (-) only."
+      }
+    }
+  },
+  "variables": {
+      "storageAccountName": "[concat(uniqueString(resourceGroup().id),'storage')]",
+      "shareAccountName": "[concat(uniqueString(resourceGroup().id),'share')]",
+      "accountKind" : "StorageV2",
+      "skuName": "Standard_LRS",
+      "skuTier": "Standard",
+      "vmSize": "STANDARD_D2S_V3"
+  },
+  "resources": [
+    {
+      "name": "linkedTemplate",
+      "type": "Microsoft.Resources/deployments",
+      "apiVersion": "2020-10-01",
+      "properties": {
+        "mode": "Incremental",
+        "templateLink": {
+          "relativePath": "../../batch/withFileShare/azuredeploy.json"
+        },
+        "parameters": {
+          "storageAccountName": {
+            "value": "[variables('shareAccountName')]"
+          },
+          "location": {
+            "value": "[parameters('location')]"
+          },
+          "fileShareName": {
+            "value": "[parameters('fileShareName')]"
+          }
+        }
+      }
+    },
+    {
+      "type": "Microsoft.Storage/storageAccounts",
+      "apiVersion": "2021-01-01",
+      "name": "[variables('storageAccountname')]",
+      "location": "[parameters('location')]",
+      "sku": {
+        "name": "[variables('skuName')]",
+        "tier": "[variables('skuTier')]"
+      },
+      "kind": "[variables('accountKind')]"
+    },
+    {
+      "type": "Microsoft.Batch/batchAccounts",
+      "apiVersion": "2021-01-01",
+      "name": "[parameters('batchAccountName')]",
+      "location": "[parameters('location')]",
+      "dependsOn": [
+        "[resourceId('Microsoft.Storage/storageAccounts', variables('shareAccountName'))]",
+        "[resourceId('Microsoft.Storage/storageAccounts', variables('storageAccountName'))]"
+      ],
+      "properties": {
+        "autoStorage": {
+          "storageAccountId": "[resourceId('Microsoft.Storage/storageAccounts', variables('storageAccountName'))]"
+        }
+      }
+    },
+    {
+      "type": "Microsoft.Batch/batchAccounts/pools",
+      "apiVersion": "2021-01-01",
+      "name": "[concat(parameters('batchAccountName'), '/pool')]",
+      "dependsOn": [
+        "[resourceId('Microsoft.Batch/batchAccounts', parameters('batchAccountName'))]"
+      ],
+      "properties": {
+              "vmSize": "[variables('vmSize')]",
+              "interNodeCommunication": "Disabled",
+              "taskSlotsPerNode": 1,
+              "taskSchedulingPolicy": {
+                  "nodeFillType": "Pack"
+              },
+              "deploymentConfiguration": {
+                  "virtualMachineConfiguration": {
+                      "imageReference": {
+                          "publisher": "microsoft-azure-batch",
+                          "offer": "ubuntu-server-container",
+                          "sku": "20-04-lts",
+                          "version": "latest"
+                      },
+                      "nodeAgentSkuId": "batch.node.ubuntu 20.04",
+                      "nodePlacementConfiguration": {
+                          "policy": "Regional"
+                      }
+                  }
+              },
+              "networkConfiguration": {
+                  "publicIPAddressConfiguration": {
+                      "provision": "BatchManaged"
+                  }
+              },
+              "scaleSettings": {
+                  "fixedScale": {
+                      "targetDedicatedNodes": 0,
+                      "targetLowPriorityNodes": 0,
+                      "resizeTimeout": "PT15M"
+                  }
+              },
+              "mountConfiguration" : [{
+                "azureFileShareConfiguration" : {
+                  "accountName": "[variables('shareAccountName')]",
+                  "azureFileUrl": "[concat('https://', variables('shareAccountName'), '.file.core.windows.net/', parameters('fileShareName'))]",
+                  "accountKey": "[listKeys(resourceId('Microsoft.Storage/storageAccounts', variables('shareAccountName')), '2019-06-01').keys[0].value]",
+                  "relativeMountPath": "S"
+                }
+              }]
+            }
+      }
+  ]
+}
