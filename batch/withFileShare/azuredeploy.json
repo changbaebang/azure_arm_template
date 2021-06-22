@@ -41,7 +41,8 @@
       "properties": {
         "mode": "Incremental",
         "templateLink": {
-          "relativePath": "../../batch/withFileShare/azuredeploy.json"
+          "uri": "https://raw.githubusercontent.com/changbaebang/azure_arm_template/main/storage/withFileShare/azuredeploy.json",
+          "contentVersion": "1.0.0.0"
         },
         "parameters": {
           "storageAccountName": {
@@ -73,6 +74,7 @@
       "name": "[parameters('batchAccountName')]",
       "location": "[parameters('location')]",
       "dependsOn": [
+        "[resourceId('Microsoft.Resources/deployments', 'linkedTemplate')]",
         "[resourceId('Microsoft.Storage/storageAccounts', variables('storageAccountName'))]"
       ],
       "properties": {
