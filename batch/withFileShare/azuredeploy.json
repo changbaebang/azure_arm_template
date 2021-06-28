@@ -74,7 +74,6 @@
       "name": "[parameters('batchAccountName')]",
       "location": "[parameters('location')]",
       "dependsOn": [
-        "[resourceId('Microsoft.Resources/deployments', 'linkedTemplate')]",
         "[resourceId('Microsoft.Storage/storageAccounts', variables('storageAccountName'))]"
       ],
       "properties": {
@@ -88,6 +87,7 @@
       "apiVersion": "2021-01-01",
       "name": "[concat(parameters('batchAccountName'), '/pool')]",
       "dependsOn": [
+        "[resourceId('Microsoft.Resources/deployments', 'linkedTemplate')]",
         "[resourceId('Microsoft.Batch/batchAccounts', parameters('batchAccountName'))]"
       ],
       "properties": {
