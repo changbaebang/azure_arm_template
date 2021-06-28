@@ -35,27 +35,23 @@
   },
   "resources": [
     {
-      "name": "linkedTemplate",
-      "type": "Microsoft.Resources/deployments",
-      "apiVersion": "2020-10-01",
-      "properties": {
-        "mode": "Incremental",
-        "templateLink": {
-          "uri": "https://raw.githubusercontent.com/changbaebang/azure_arm_template/main/storage/withFileShare/azuredeploy.json",
-          "contentVersion": "1.0.0.0"
-        },
-        "parameters": {
-          "storageAccountName": {
-            "value": "[variables('shareAccountName')]"
-          },
-          "location": {
-            "value": "[parameters('location')]"
-          },
-          "fileShareName": {
-            "value": "[parameters('fileShareName')]"
-          }
-        }
-      }
+      "type": "Microsoft.Storage/storageAccounts",
+      "apiVersion": "2021-01-01",
+      "name": "[variables('shareAccountName')]",
+      "location": "[parameters('location')]",
+      "sku": {
+        "name": "[variables('skuName')]",
+        "tier": "[variables('skuTier')]"
+      },
+      "kind": "[variables('accountKind')]"
+    },
+    {
+      "type": "Microsoft.Storage/storageAccounts/fileServices/shares",
+      "apiVersion": "2021-01-01",
+      "name": "[concat(variables('shareAccountName'), '/default/', parameters('fileShareName'))]",
+      "dependsOn": [
+        "[resourceId('Microsoft.Storage/storageAccounts', variables('shareAccountName'))]"
+      ]
     },
     {
       "type": "Microsoft.Storage/storageAccounts",
