@@ -18,6 +18,7 @@
     },
     "fileShareName": {
       "type": "string",
+      "defaultValue": "test",
       "minLength": 3,
       "maxLength": 63,
       "metadata": {
@@ -83,7 +84,6 @@
       "apiVersion": "2021-01-01",
       "name": "[concat(parameters('batchAccountName'), '/pool')]",
       "dependsOn": [
-        "[resourceId('Microsoft.Resources/deployments', 'linkedTemplate')]",
         "[resourceId('Microsoft.Batch/batchAccounts', parameters('batchAccountName'))]"
       ],
       "properties": {
@@ -124,7 +124,8 @@
                   "accountName": "[variables('shareAccountName')]",
                   "azureFileUrl": "[concat('https://', variables('shareAccountName'), '.file.core.windows.net/', parameters('fileShareName'))]",
                   "accountKey": "[listKeys(resourceId('Microsoft.Storage/storageAccounts', variables('shareAccountName')), '2019-06-01').keys[0].value]",
-                  "relativeMountPath": "S"
+                  "relativeMountPath": "[concat('/', variables('shareAccountName'))]",
+                  "mountOptions": "-o vers=3.0,dir_mode=0777,file_mode=0777,sec=ntlmssp"
                 }
               }]
             }
